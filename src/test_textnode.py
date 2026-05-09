@@ -1,8 +1,7 @@
 import unittest
 
-from textnode import TextNode, TextType, text_node_to_html_node
+from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter
 from htmlnode import HTMLNode, LeafNode, ParentNode
-
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -25,6 +24,7 @@ class TestTextNode(unittest.TestCase):
         node2 = TextNode("This is a text node", TextType.BOLD, "https://www.boot.dev")
         self.assertNotEqual(node, node2)
 
+class TestLeafNode(unittest.TestCase):
     def test_leaf_to_html_p(self):
         node = LeafNode("p", "Hello, world!")
         self.assertEqual(node.to_html(), "<p>Hello, world!</p>")
@@ -37,6 +37,7 @@ class TestTextNode(unittest.TestCase):
         node = LeafNode("b", "Look at me!")
         self.assertEqual(node.to_html(), '<b>Look at me!</b>')
 
+class TestHTMLNode(unittest.TestCase):
     def test_to_html_with_children(self):
         child_node = LeafNode("span", "child")
         parent_node = ParentNode("div", [child_node])
@@ -64,6 +65,7 @@ class TestTextNode(unittest.TestCase):
             "<div><b>child 1</b><i>child 2</i></div>",
         )
 
+class TestParentNode(unittest.TestCase):
     def test_parent_with_multiple_children(self):
         node = ParentNode("p", [
             LeafNode("b", "Bold"),
@@ -86,6 +88,7 @@ class TestTextNode(unittest.TestCase):
         node = ParentNode("div", [])
         self.assertEqual(node.to_html(), "<div></div>")
 
+class TestTextToHTMLNode(unittest.TestCase):
     def test_text(self):
         node = TextNode("This is a text node", TextType.TEXT)
         html_node = text_node_to_html_node(node)
@@ -124,6 +127,83 @@ class TestTextNode(unittest.TestCase):
         self.assertEqual(html_node.props, {"src": "https://www.boot.dev/img/bootdev-logo-full-150.png", "alt": "This is an IMAGE node"})
         self.assertEqual(html_node.value, "")
 
+class TestSplitTextNode(unittest.TestCase):
+    def test_plain_text(self):
+        node = TextNode("This is a text node with no markdown", TextType.TEXT)
+        split_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertEqual(split_nodes, 
+            [
+            TextNode("This is a text node with no markdown", TextType.TEXT)
+            ]
+        )
+
+    def test_code_text(self):
+        node = TextNode("This is a text node with `code` markdown", TextType.TEXT)
+        split_nodes = split_nodes_delimiter([node], "`", TextType.CODE)
+        self.assertEqual(split_nodes, 
+            [
+            TextNode("This is a text node with ", TextType.TEXT),
+            TextNode("code", TextType.CODE),
+            TextNode(" markdown", TextType.TEXT)
+            ]
+        )
+
+    def test_bold_text(self):
+        node = TextNode("This is a text node with **bold** markdown", TextType.TEXT)
+        split_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertEqual(split_nodes, 
+            [
+            TextNode("This is a text node with ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+            TextNode(" markdown", TextType.TEXT)
+            ]
+        )
+
+    def test_italic_text(self):
+        node = TextNode("This is a text node with _italic_ markdown", TextType.TEXT)
+        split_nodes = split_nodes_delimiter([node], "_", TextType.ITALIC)
+        self.assertEqual(split_nodes, 
+            [
+            TextNode("This is a text node with ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" markdown", TextType.TEXT)
+            ]
+        )
+
+    def test_bold_start_text(self):
+        node = TextNode("**This is a text node that starts with bold** markdown", TextType.TEXT)
+        split_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertEqual(split_nodes, 
+            [
+            TextNode("This is a text node that starts with bold", TextType.BOLD),
+            TextNode(" markdown", TextType.TEXT)
+            ]
+        )
+
+    def test_italic_end_text(self):
+        node = TextNode("This is a text node that ends with _italic markdown_", TextType.TEXT)
+        split_nodes = split_nodes_delimiter([node], "_", TextType.ITALIC)
+        self.assertEqual(split_nodes, 
+            [
+            TextNode("This is a text node that ends with ", TextType.TEXT),
+            TextNode("italic markdown", TextType.ITALIC),
+            ]
+        )
+
+    def test_unchanged_text(self):
+        node = TextNode("This is not a plain text node", TextType.BOLD)
+        split_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertEqual(split_nodes, 
+            [
+            TextNode("This is not a plain text node", TextType.BOLD)
+            ]
+        )
+
+    def test_invalid_markdown(self):
+        node = TextNode("This is a text node with _invalid markdown", TextType.TEXT)
+        with self.assertRaises(Exception):
+            split_nodes_delimiter([node], "_", TextType.ITALIC)
+            
 
 if __name__ == "__main__":
     unittest.main()
