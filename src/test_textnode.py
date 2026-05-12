@@ -477,6 +477,194 @@ class TestTextToTextNode(unittest.TestCase):
             new_nodes,
         )
 
+class TestMarkdownToBlocks(unittest.TestCase):
+
+        def test_markdown_to_blocks(self):
+            md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+            blocks = markdown_to_blocks(md)
+            self.assertEqual(
+                blocks,
+                [
+                    "This is **bolded** paragraph",
+                    "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                    "- This is a list\n- with items",
+                ],
+            )
+
+
+        def test_markdown_to_blocks_2(self):
+            md = """
+This is **bolded** paragraph
+
+
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+
+
+- This is a list
+- with items
+"""
+            blocks = markdown_to_blocks(md)
+            self.assertEqual(
+                blocks,
+                [
+                    "This is **bolded** paragraph",
+                    "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                    "- This is a list\n- with items",
+                ],
+            )
+
+        def test_markdown_to_blocks_3(self):
+            md = """
+
+                This is **bolded** paragraph    
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+
+
+"""
+            blocks = markdown_to_blocks(md)
+            self.assertEqual(
+                blocks,
+                [
+                    "This is **bolded** paragraph",
+                    "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                    "- This is a list\n- with items",
+                ],
+            )
+
+
+        def test_markdown_to_blocks_4(self):
+            md = ""
+            blocks = markdown_to_blocks(md)
+            self.assertEqual(
+                blocks,
+                [],
+            )
+
+class TestBlockTypes(unittest.TestCase):
+
+    def test_heading_block_good(self):
+
+        block = block_to_block_type("### This Is A Heading")
+
+        self.assertEqual(
+            block, BlockType.HEAD
+        )
+
+    def test_heading_block_bad(self):
+
+        block = block_to_block_type("###This Is A Heading")
+
+        self.assertEqual(
+            block, BlockType.PARA
+        )
+
+    def test_code_block_good(self):
+
+        md = "```\nThis is a code block```"
+
+        block = block_to_block_type(md)
+
+        self.assertEqual(
+            block, BlockType.CODE
+        )
+
+    def test_code_block_bad(self):
+
+        md = "```\nThis is a code block"
+        
+        block = block_to_block_type(md)
+
+        self.assertEqual(
+            block, BlockType.PARA
+        )
+
+    def test_quote_block_good(self):
+
+        md = """> This is a quote block
+> With multiple lines
+>Some have no leading space"""
+
+        block = block_to_block_type(md)
+
+        self.assertEqual(
+            block, BlockType.QUOTE
+        )
+
+    def test_quote_block_bad(self):
+
+        md = """> This is a quote block
+> With multiple lines
+Some have no leading space"""
+        
+        block = block_to_block_type(md)
+
+        self.assertEqual(
+            block, BlockType.PARA
+        )
+
+    def test_ulist_block_good(self):
+
+        md = """- This is an unordered list
+- With multiple lines
+- And a cherry on top"""
+
+        block = block_to_block_type(md)
+
+        self.assertEqual(
+            block, BlockType.ULIST
+        )
+
+    def test_quote_block_bad(self):
+
+        md = """- This is an unordered list
+- With multiple lines
+And a cherry on top"""
+        
+        block = block_to_block_type(md)
+
+        self.assertEqual(
+            block, BlockType.PARA
+        )
+
+    def test_ulist_block_good(self):
+
+        md = """1. This is an ordered list
+2. With multiple lines
+3. And a cherry on top"""
+
+        block = block_to_block_type(md)
+
+        self.assertEqual(
+            block, BlockType.OLIST
+        )
+
+    def test_quote_block_bad(self):
+
+        md = """1. This is an unordered list
+3. With multiple lines
+4. And a cherry on top"""
+        
+        block = block_to_block_type(md)
+
+        self.assertEqual(
+            block, BlockType.PARA
+        )
 
 
 if __name__ == "__main__":

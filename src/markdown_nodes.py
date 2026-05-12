@@ -1,6 +1,15 @@
 
 import re
+from enum import Enum
 from textnode import TextNode, TextType
+
+class BlockType(Enum):
+    PARA = "paragraph"
+    HEAD = "heading"
+    CODE = "code"
+    QUOTE = "quote"
+    ULIST = "unordered_list"
+    OLIST = "ordered_list"
 
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
     if len(old_nodes) == 0:
@@ -118,3 +127,47 @@ def text_to_textnodes(text):
     nodes = split_nodes_image(nodes)
     nodes = split_nodes_link(nodes)
     return nodes
+
+
+def markdown_to_blocks(markdown):
+
+    blocks = markdown.split("\n\n")
+    results = []
+
+    for block in blocks:
+        new_block = block.strip()
+        if len(new_block) > 0:
+            results.append(new_block)
+    
+    return results
+
+
+def block_to_block_type(block):
+
+    num_hashes = len(block) - len(block.lstrip("#"))
+    lines = block.split("\n")
+    
+    if 1 <= num_hashes <= 6 and block[num_hashes] == " ":
+        return BlockType.HEAD
+    
+    elif block.startswith ("```\n") and block.endswith("```"):
+        return BlockType.CODE
+    
+    elif all(line.startswith(">") for line in lines):
+        return BlockType.QUOTE
+    
+    elif all(line.startswith("- ") for line in lines):
+        return BlockType.ULIST
+    
+    ordered = True
+    for i, line in enumerate(lines):
+        if line.startswith(f"{i+1}. "):
+            continue
+        else:
+            ordered = False
+            break
+    
+    if ordered:
+        return BlockType.OLIST
+
+    return BlockType.PARA
